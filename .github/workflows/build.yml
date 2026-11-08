@@ -23,6 +23,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.7
+      - name: Copy Bahan to Assets
+        run: |
+          mkdir -p app/src/main/assets
+          if [ -d "bahan" ]; then
+            cp -r bahan/* app/src/main/assets/
+            echo "Bahan berhasil disalin ke assets!"
+          else
+            echo "Folder bahan tidak ditemukan!"
+          fi
       - name: Build APK with Gradle
         run: gradle assembleDebug --no-daemon
       - name: Upload APK Artifact
