@@ -2,15 +2,12 @@ name: Build Modern APK
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build_apk:
-    name: Build and Compile APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -22,11 +19,6 @@ jobs:
           java-version: '17'
       - name: Setup Android SDK Environment
         run: echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-      - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r26b
-          add-to-path: true
       - name: Setup Gradle Cache
         uses: actions/cache@v4
         with:
@@ -36,22 +28,14 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-      - name: Compile Native C C++
-        run: |
-          if [ -d "app/src/main/jni" ]; then
-            echo "JNI folder found, compiling native..."
-            cd app/src/main/jni
-            ndk-build NDK_PROJECT_PATH=. APP_ABI=arm64-v8a
-          else
-            echo "JNI folder not found, skipping native compilation."
-          fi
       - name: Build APK with Gradle
         run: |
+          gradle wrapper --gradle-version 8.1.1
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyApp-Debug-APK
+          name: QuantumModern-APK
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 7
