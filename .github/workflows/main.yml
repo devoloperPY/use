@@ -1,0 +1,73 @@
+name: Build Modern APK
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# Fitur Cerdas: Otomatis batalkan build lama jika ada push baru
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_apk:
+    name: Build & Compile APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 1. Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ 2. Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle' # Cerdas: Cache Gradle otomatis
+
+      - name: 🤖 3. Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: ⚙️ 4. Setup Android NDK (Native)
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26b
+          add-to-path: true
+
+      # Fitur Cerdas: Cache NDK & CMake biar build selanjutnya instan
+      - name: 💾 5. Cache NDK & Native Libs
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: 🛠️ 6. Compile Native C/C++ (Jika Ada)
+        run: |
+          if [ -d "app/src/main/jni" ]; then
+            echo "Folder JNI ditemukan, memulai kompilasi native..."
+            cd app/src/main/jni
+            ndk-build NDK_PROJECT_PATH=. APP_ABI=arm64-v8a
+          else
+            echo "Folder JNI tidak ditemukan, melewati kompilasi native."
+          fi
+
+      - name: 🔨 7. Build APK dengan Gradle
+        run: |
+          chmod +x gradlew
+          # Build versi debug (bisa diganti assembleRelease jika udah siap rilis)
+          ./gradlew assembleDebug --no-daemon
+
+      - name: 🚀 8. Upload Hasil APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyApp-Debug-APK
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
