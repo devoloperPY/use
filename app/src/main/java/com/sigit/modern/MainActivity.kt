@@ -1,11 +1,15 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.sigit.modern
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.view.ViewGroup
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,13 +45,40 @@ class MainActivity : ComponentActivity() {
                                 )
                                 settings.javaScriptEnabled = true
                                 settings.domStorageEnabled = true
+                                settings.allowFileAccess = true
+                                
+                                addJavascriptInterface(WebAppInterface(context), "GhostInterface")
+                                
                                 webViewClient = WebViewClient()
-                                loadUrl("https://www.google.com")
+                                
+                                val targetFile = findFirstHtmlFile(context)
+                                if (targetFile != null) {
+                                    loadUrl("file:///android_asset/$targetFile")
+                                } else {
+                                    loadDataWithBaseURL(null, "<h1 style='color:red;text-align:center;'>Error: Nggak ada file .html di folder assets!</h1>", "text/html", "UTF-8", null)
+                                }
                             }
                         }
                     )
                 }
             }
         }
+    }
+
+    private fun findFirstHtmlFile(context: Context): String? {
+        try {
+            val files = context.assets.list("") ?: return null
+            if (files.contains("index.html")) return "index.html"
+            return files.firstOrNull { it.endsWith(".html", ignoreCase = true) }
+        } catch (e: Exception) {
+            return null
+        }
+    }
+}
+
+class WebAppInterface(private val context: Context) {
+    @JavascriptInterface
+    fun toast(msg: String) {
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
     }
 }
