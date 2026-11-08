@@ -19,23 +19,15 @@ jobs:
           java-version: '17'
       - name: Setup Android SDK Environment
         run: echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-      - name: Setup Gradle Cache
-        uses: actions/cache@v4
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v3
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          gradle-version: 8.7
       - name: Build APK with Gradle
-        run: |
-          gradle wrapper --gradle-version 8.1.1
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: QuantumModern-APK
+          name: Modern-APK
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 7
