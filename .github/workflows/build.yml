@@ -6,6 +6,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   build_apk:
     runs-on: ubuntu-latest
@@ -19,21 +20,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # MENYIAPKAN GRADLE SECARA INTERNAL (Menghindari Error 504 server Gradle down & otomatis urus cache)
+      - name: Setup Gradle System
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
       - name: Setup Android SDK Environment
         run: echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
 
-      # FIX 1: Jalankan Cache GRADLE di awal sebelum ada file yang dimodifikasi secara dinamis
-      - name: Setup Gradle Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      # FIX 2: Pindahkan pembuatan Custom Settings ke bawah setelah inisialisasi cache selesai
+      # MEMBUAT SETTINGS DENGAN REPO ALTERNATIF (Anti-Error 502/504 Dependensi)
       - name: Create Custom Settings Gradle
         run: |
           cat << 'EOF' > settings.gradle
@@ -87,13 +83,11 @@ jobs:
             cp -r bahan/* app/src/main/assets/
           fi
           
-      # FIX 3: Masukkan argumen anti-timeout secara global ke sistem operasi Ubuntu melalui GRADLE_OPTS
+      # EKSEKUSI UTAMA (Menggunakan perintah gradle sistem langsung tanpa wrapper eksternal)
       - name: Build APK with Gradle
         run: |
           export GRADLE_OPTS="-Dorg.gradle.internal.http.connectionTimeout=500000 -Dorg.gradle.internal.http.socketTimeout=500000 -Dhttp.keepAlive=false -Dsun.net.client.defaultConnectTimeout=500000 -Dsun.net.client.defaultReadTimeout=500000"
-          gradle wrapper
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          gradle assembleDebug --no-daemon
         
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
