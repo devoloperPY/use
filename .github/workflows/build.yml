@@ -12,31 +12,58 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
       - name: Setup Java JDK 17
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
+
       - name: Setup Android SDK Environment
         run: echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+
       - name: Setup Gradle 8.7
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.7
+
+      - name: Apply Custom Branding
+        run: |
+          if [ -f "configurasi/config.json" ]; then
+            APP_NAME=$(jq -r '.app_name' configurasi/config.json)
+            PKG_NAME=$(jq -r '.package_name' configurasi/config.json)
+            VERSION_NAME=$(jq -r '.version_name' configurasi/config.json)
+            
+            echo "<resources><string name=\"app_name\">$APP_NAME</string></resources>" > app/src/main/res/values/strings.xml
+            
+            sed -i "s|applicationId \".*\"|applicationId \"$PKG_NAME\"|g" app/build.gradle
+            sed -i "s|namespace '.*'|namespace '$PKG_NAME'|g" app/build.gradle
+            sed -i "s|versionName \".*\"|versionName \"$VERSION_NAME\"|g" app/build.gradle
+            
+            find app/src/main/java -name "*.kt" -exec sed -i "s|^package .*|package $PKG_NAME|g" {} +
+          fi
+
+      - name: Apply Custom Icon
+        run: |
+          mkdir -p app/src/main/res/mipmap-xxxhdpi
+          if [ -f "configurasi/icon.png" ]; then
+            cp configurasi/icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+            cp configurasi/icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+          fi
+
       - name: Copy Bahan to Assets
         run: |
           mkdir -p app/src/main/assets
           if [ -d "bahan" ]; then
             cp -r bahan/* app/src/main/assets/
-            echo "Bahan berhasil disalin ke assets!"
-          else
-            echo "Folder bahan tidak ditemukan!"
           fi
+          
       - name: Build APK with Gradle
         run: gradle assembleDebug --no-daemon
+        
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Modern-APK
+          name: Nexus-VPN-APK
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 7
