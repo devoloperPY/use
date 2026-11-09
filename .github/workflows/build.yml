@@ -23,7 +23,6 @@ jobs:
       - name: Setup Android SDK Environment
         run: echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
 
-      # MEMBUAT SETTINGS DENGAN REPO ALTERNATIF (Anti-Error 502/504 Dependensi)
       - name: Create Custom Settings Gradle
         run: |
           cat << 'EOF' > settings.gradle
@@ -39,7 +38,6 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
-                  maven { url 'https://maven.org' }
               }
           }
           rootProject.name = "NexusVPN"
@@ -52,6 +50,9 @@ jobs:
             APP_NAME=$(jq -r '.app_name' configurasi/config.json)
             PKG_NAME=$(jq -r '.package_name' configurasi/config.json)
             VERSION_NAME=$(jq -r '.version_name' configurasi/config.json)
+            
+            echo "Mengganti nama app jadi: $APP_NAME"
+            echo "Mengganti package jadi: $PKG_NAME"
             
             echo "<resources><string name=\"app_name\">$APP_NAME</string></resources>" > app/src/main/res/values/strings.xml
             
@@ -66,6 +67,7 @@ jobs:
         run: |
           mkdir -p app/src/main/res/mipmap-xxxhdpi
           if [ -f "configurasi/icon.png" ]; then
+            echo "Icon ditemukan, menyalin..."
             cp configurasi/icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
             cp configurasi/icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
           fi
@@ -77,7 +79,6 @@ jobs:
             cp -r bahan/* app/src/main/assets/
           fi
           
-      # EKSEKUSI UTAMA (Langsung pakai `gradle` bawaan Ubuntu tanpa download)
       - name: Build APK with Local Gradle
         run: |
           export GRADLE_OPTS="-Dorg.gradle.internal.http.connectionTimeout=500000 -Dorg.gradle.internal.http.socketTimeout=500000 -Dhttp.keepAlive=false -Dsun.net.client.defaultConnectTimeout=500000 -Dsun.net.client.defaultReadTimeout=500000"
