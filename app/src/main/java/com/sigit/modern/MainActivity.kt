@@ -1,9 +1,8 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-
 package com.sigit.modern
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
@@ -18,8 +17,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import org.json.JSONArray
+import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
+    private var webViewRef: WebView? = null
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,7 +31,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Quantum App") },
+                            title = { Text("Nexus Tunnel") },
                             colors = TopAppBarDefaults.topAppBarColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer
                             )
@@ -46,16 +49,18 @@ class MainActivity : ComponentActivity() {
                                 settings.javaScriptEnabled = true
                                 settings.domStorageEnabled = true
                                 settings.allowFileAccess = true
+                                settings.databaseEnabled = true
+                                settings.setSupportZoom(false)
                                 
-                                addJavascriptInterface(WebAppInterface(context), "GhostInterface")
-                                
+                                addJavascriptInterface(WebAppInterface(context), "AndroidInterface")
                                 webViewClient = WebViewClient()
+                                webViewRef = this
                                 
                                 val targetFile = findFirstHtmlFile(context)
                                 if (targetFile != null) {
                                     loadUrl("file:///android_asset/$targetFile")
                                 } else {
-                                    loadDataWithBaseURL(null, "<h1 style='color:red;text-align:center;'>Error: Nggak ada file .html di folder assets!</h1>", "text/html", "UTF-8", null)
+                                    loadDataWithBaseURL(null, "<h1>Error: HTML not found in assets!</h1>", "text/html", "UTF-8", null)
                                 }
                             }
                         }
@@ -70,15 +75,100 @@ class MainActivity : ComponentActivity() {
             val files = context.assets.list("") ?: return null
             if (files.contains("index.html")) return "index.html"
             return files.firstOrNull { it.endsWith(".html", ignoreCase = true) }
-        } catch (e: Exception) {
-            return null
-        }
+        } catch (e: Exception) { return null }
     }
 }
 
 class WebAppInterface(private val context: Context) {
+    private val prefs = context.getSharedPreferences("NexusVPNPrefs", Context.MODE_PRIVATE)
+
     @JavascriptInterface
     fun toast(msg: String) {
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    @JavascriptInterface
+    fun saveConfig(jsonStr: String) {
+        try {
+            val configObj = JSONObject(jsonStr)
+            val id = configObj.getString("id")
+            val currentArray = getConfigs()
+            var found = false
+            for (i in 0 until currentArray.length()) {
+                if (currentArray.getJSONObject(i).getString("id") == id) {
+                    currentArray.put(i, configObj)
+                    found = true
+                    break
+                }
+            }
+            if (!found) currentArray.put(configObj)
+            prefs.edit().putString("configs", currentArray.toString()).apply()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Gagal simpan config", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    @JavascriptInterface
+    fun deleteConfig(id: String) {
+        try {
+            val currentArray = getConfigs()
+            val newArray = JSONArray()
+            for (i in 0 until currentArray.length()) {
+                if (currentArray.getJSONObject(i).getString("id") != id) {
+                    newArray.put(currentArray.getJSONObject(i))
+                }
+            }
+            prefs.edit().putString("configs", newArray.toString()).apply()
+        } catch (e: Exception) {}
+    }
+
+    @JavascriptInterface
+    fun getConfigs(): JSONArray {
+        try {
+            val str = prefs.getString("configs", "[]") ?: "[]"
+            return JSONArray(str)
+        } catch (e: Exception) {
+            return JSONArray()
+        }
+    }
+
+    @JavascriptInterface
+    fun startVpn(configId: String) {
+        try {
+            val configs = getConfigs()
+            var targetConfig = ""
+            for (i in 0 until configs.length()) {
+                if (configs.getJSONObject(i).getString("id") == configId) {
+                    targetConfig = configs.getJSONObject(i).toString()
+                    break
+                }
+            }
+            if (targetConfig.isEmpty()) return
+
+            val intent = android.net.VpnService.prepare(context)
+            if (intent != null) {
+                Toast.makeText(context, "Minta izin VPN...", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Menghubungkan...", Toast.LENGTH_SHORT).show()
+            }
+
+            val serviceIntent = Intent(context, Class.forName("com.sigit.modern.vpn_engine.VpnServiceCore"))
+            serviceIntent.putExtra("CONFIG_JSON", targetConfig)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    @JavascriptInterface
+    fun stopVpn() {
+        try {
+            val serviceIntent = Intent(context, Class.forName("com.sigit.modern.vpn_engine.VpnServiceCore"))
+            context.stopService(serviceIntent)
+        } catch (e: Exception) {}
     }
 }
