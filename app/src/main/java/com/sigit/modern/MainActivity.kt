@@ -92,8 +92,8 @@ class MainActivity : ComponentActivity() {
 
     private fun startVpnService(configJson: String) {
         try {
-            // PAKAI Class.forName BIAR KEBAL GANTI PACKAGE
-            val serviceIntent = Intent(this, Class.forName("VpnServiceCore"))
+            val serviceIntent = Intent()
+            serviceIntent.setClassName(this, "com.sigit.modern.vpn_engine.VpnServiceCore")
             serviceIntent.putExtra("CONFIG_JSON", configJson)
             
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -191,7 +191,8 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun stopVpn() {
             try {
-                val serviceIntent = Intent(context, Class.forName("VpnServiceCore"))
+                val serviceIntent = Intent()
+                serviceIntent.setClassName(context, "com.sigit.modern.vpn_engine.VpnServiceCore")
                 context.stopService(serviceIntent)
             } catch (e: Exception) {}
         }
