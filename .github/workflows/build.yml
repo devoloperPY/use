@@ -22,6 +22,18 @@ jobs:
       - name: Setup Android SDK Environment
         run: echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
 
+      # FIX 1: Jalankan Cache GRADLE di awal sebelum ada file yang dimodifikasi secara dinamis
+      - name: Setup Gradle Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # FIX 2: Pindahkan pembuatan Custom Settings ke bawah setelah inisialisasi cache selesai
       - name: Create Custom Settings Gradle
         run: |
           cat << 'EOF' > settings.gradle
@@ -37,6 +49,7 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
+                  maven { url 'https://maven.org' }
               }
           }
           rootProject.name = "NexusVPN"
@@ -74,11 +87,13 @@ jobs:
             cp -r bahan/* app/src/main/assets/
           fi
           
+      # FIX 3: Masukkan argumen anti-timeout secara global ke sistem operasi Ubuntu melalui GRADLE_OPTS
       - name: Build APK with Gradle
         run: |
+          export GRADLE_OPTS="-Dorg.gradle.internal.http.connectionTimeout=500000 -Dorg.gradle.internal.http.socketTimeout=500000 -Dhttp.keepAlive=false -Dsun.net.client.defaultConnectTimeout=500000 -Dsun.net.client.defaultReadTimeout=500000"
           gradle wrapper
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -Dorg.gradle.internal.http.connectionTimeout=300000 -Dorg.gradle.internal.http.socketTimeout=300000
+          ./gradlew assembleDebug --no-daemon
         
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
