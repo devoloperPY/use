@@ -55,7 +55,7 @@ jobs:
           
       - name: Build APK with Gradle
         run: |
-          gradle wrapper --gradle-version 8.7
+          gradle wrapper
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
         
