@@ -23,9 +23,8 @@
             </intent-filter>
         </activity>
 
-        <!-- CUKUP PAKE NAMA FILENYA AJA -->
         <service 
-            android:name="VpnServiceCore" 
+            android:name=".vpn_engine.VpnServiceCore" 
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:exported="false"
             android:foregroundServiceType="specialUse">
