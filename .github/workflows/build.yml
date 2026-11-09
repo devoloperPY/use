@@ -22,11 +22,6 @@ jobs:
       - name: Setup Android SDK Environment
         run: echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
 
-      - name: Setup Gradle 8.7
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.7
-
       - name: Apply Custom Branding
         run: |
           if [ -f "configurasi/config.json" ]; then
@@ -59,7 +54,12 @@ jobs:
           fi
           
       - name: Build APK with Gradle
-        run: gradle assembleDebug --no-daemon
+        run: |
+          wget https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q gradle-8.7-bin.zip
+          ./gradle-8.7/bin/gradle wrapper --gradle-version 8.7
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
         
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
