@@ -51,9 +51,6 @@ jobs:
             PKG_NAME=$(jq -r '.package_name' configurasi/config.json)
             VERSION_NAME=$(jq -r '.version_name' configurasi/config.json)
             
-            echo "Mengganti nama app jadi: $APP_NAME"
-            echo "Mengganti package jadi: $PKG_NAME"
-            
             echo "<resources><string name=\"app_name\">$APP_NAME</string></resources>" > app/src/main/res/values/strings.xml
             
             sed -i "s|applicationId \".*\"|applicationId \"$PKG_NAME\"|g" app/build.gradle
@@ -63,17 +60,23 @@ jobs:
             find app/src/main/java -name "*.kt" -exec sed -i "s|^package .*|package $PKG_NAME|g" {} +
           fi
 
-      - name: Apply Custom Icon
+      - name: Force Custom Icon Auto-Resize
         run: |
+          rm -rf app/src/main/res/mipmap-anydpi-v26
           if [ -f "configurasi/icon.png" ]; then
-            echo "Icon ditemukan, menyalin ke semua ukuran..."
+            sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
             for dpi in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
               mkdir -p app/src/main/res/mipmap-$dpi
-              cp configurasi/icon.png app/src/main/res/mipmap-$dpi/ic_launcher.png
-              cp configurasi/icon.png app/src/main/res/mipmap-$dpi/ic_launcher_round.png
+              case $dpi in
+                mdpi) size=48 ;;
+                hdpi) size=72 ;;
+                xhdpi) size=96 ;;
+                xxhdpi) size=144 ;;
+                xxxhdpi) size=192 ;;
+              esac
+              convert configurasi/icon.png -resize ${size}x${size} app/src/main/res/mipmap-$dpi/ic_launcher.png
+              convert configurasi/icon.png -resize ${size}x${size} app/src/main/res/mipmap-$dpi/ic_launcher_round.png
             done
-          else
-            echo "Tidak ada icon.png di folder configurasi."
           fi
 
       - name: Copy Bahan to Assets
