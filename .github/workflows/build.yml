@@ -44,20 +44,21 @@ jobs:
           include ':app'
           EOF
 
-      - name: Apply Custom Branding
+      - name: Apply Custom Branding & Strip Packages
         run: |
           if [ -f "configurasi/config.json" ]; then
             APP_NAME=$(jq -r '.app_name' configurasi/config.json)
             PKG_NAME=$(jq -r '.package_name' configurasi/config.json)
             VERSION_NAME=$(jq -r '.version_name' configurasi/config.json)
             
+            # Ganti nama app & build.gradle
             echo "<resources><string name=\"app_name\">$APP_NAME</string></resources>" > app/src/main/res/values/strings.xml
-            
             sed -i "s|applicationId \".*\"|applicationId \"$PKG_NAME\"|g" app/build.gradle
             sed -i "s|namespace '.*'|namespace '$PKG_NAME'|g" app/build.gradle
             sed -i "s|versionName \".*\"|versionName \"$VERSION_NAME\"|g" app/build.gradle
             
-            find app/src/main/java -name "*.kt" -exec sed -i "s|^package .*|package $PKG_NAME|g" {} +
+            # HAPUS BARIS "package ..." DI SEMUA FILE KOTLIN
+            find app/src/main/java -name "*.kt" -exec sed -i '/^package /d' {} +
           fi
 
       - name: Force Custom Icon Auto-Resize
