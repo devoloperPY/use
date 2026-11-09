@@ -54,7 +54,15 @@ class MainActivity : ComponentActivity() {
                                 settings.databaseEnabled = true
                                 
                                 addJavascriptInterface(WebAppInterface(this@MainActivity), "AndroidInterface")
-                                webViewClient = WebViewClient()
+                                
+                                webViewClient = object : WebViewClient() {
+                                    override fun onPageFinished(view: WebView?, url: String?) {
+                                        super.onPageFinished(view, url)
+                                        val configs = WebAppInterface(this@MainActivity).getConfigs().toString()
+                                        view?.evaluateJavascript("window.loadConfigs('$configs')", null)
+                                    }
+                                }
+                                
                                 webViewRef = this
                                 
                                 val targetFile = findFirstHtmlFile(context)
@@ -84,7 +92,8 @@ class MainActivity : ComponentActivity() {
 
     private fun startVpnService(configJson: String) {
         try {
-            val serviceIntent = Intent(this, Class.forName(packageName + ".vpn_engine.VpnServiceCore"))
+            // PAKAI Class.forName BIAR KEBAL GANTI PACKAGE
+            val serviceIntent = Intent(this, Class.forName("VpnServiceCore"))
             serviceIntent.putExtra("CONFIG_JSON", configJson)
             
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -182,7 +191,7 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun stopVpn() {
             try {
-                val serviceIntent = Intent(context, Class.forName(packageName + ".vpn_engine.VpnServiceCore"))
+                val serviceIntent = Intent(context, Class.forName("VpnServiceCore"))
                 context.stopService(serviceIntent)
             } catch (e: Exception) {}
         }
