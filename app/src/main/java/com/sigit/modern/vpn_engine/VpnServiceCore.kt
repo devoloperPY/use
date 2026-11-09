@@ -11,14 +11,32 @@ class VpnServiceCore : VpnService() {
     private var vpnInterface: ParcelFileDescriptor? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val configJson = intent?.getStringExtra("CONFIG_JSON") ?: ""
-        startForeground(1, buildNotification("Menghubungkan..."))
-        
-        val pm = getSystemService(POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NexusVPN::WakeLock")
-        wakeLock?.acquire()
+        try {
+            val configJson = intent?.getStringExtra("CONFIG_JSON") ?: ""
+            startForeground(1, buildNotification("Menghubungkan..."))
+            
+            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NexusVPN::WakeLock")
+            wakeLock?.acquire()
 
-        // Di sini logic engine SSH ditaruh
+            val builder = Builder()
+            builder.setSession("Nexus VPN")
+            builder.addAddress("10.8.0.2", 32)
+            builder.addRoute("0.0.0.0", 0)
+            builder.setMtu(1500)
+            builder.addDnsServer("1.1.1.1")
+            
+            vpnInterface = builder.establish()
+            
+            if (vpnInterface == null) {
+                stopSelf()
+            }
+            
+        } catch (e: Exception) {
+            e.printStackTrace()
+            stopSelf()
+        }
+        
         return START_STICKY
     }
 
