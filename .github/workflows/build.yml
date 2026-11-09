@@ -65,11 +65,15 @@ jobs:
 
       - name: Apply Custom Icon
         run: |
-          mkdir -p app/src/main/res/mipmap-xxxhdpi
           if [ -f "configurasi/icon.png" ]; then
-            echo "Icon ditemukan, menyalin..."
-            cp configurasi/icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-            cp configurasi/icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+            echo "Icon ditemukan, menyalin ke semua ukuran..."
+            for dpi in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              mkdir -p app/src/main/res/mipmap-$dpi
+              cp configurasi/icon.png app/src/main/res/mipmap-$dpi/ic_launcher.png
+              cp configurasi/icon.png app/src/main/res/mipmap-$dpi/ic_launcher_round.png
+            done
+          else
+            echo "Tidak ada icon.png di folder configurasi."
           fi
 
       - name: Copy Bahan to Assets
