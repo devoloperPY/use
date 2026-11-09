@@ -1,5 +1,3 @@
-package com.sigit.modern.vpn_engine
-
 import android.app.*
 import android.content.Intent
 import android.net.VpnService
