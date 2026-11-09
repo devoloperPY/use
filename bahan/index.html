@@ -1229,12 +1229,13 @@
     } catch(e){ console.error("loadConfigs error:", e); }
   };
 
+  // HAPUS PEMANGGILAN OTOMATIS DI SINI, KARENA KOTLIN YANG BAKAL NGIRIM DATA PAS ONPAGEFINISHED
+  // if (window.AndroidInterface && typeof window.AndroidInterface.getConfigs === "function") {
+  //     window.AndroidInterface.getConfigs();
+  // }
+
   render();
   window.updateLog("Nexus System initialized. Ready for connection.", "info");
-
-  if (window.AndroidInterface && typeof window.AndroidInterface.getConfigs === "function") {
-      window.AndroidInterface.getConfigs();
-  }
 
 })();
 </script>
