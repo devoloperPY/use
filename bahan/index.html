@@ -1,26 +1,1242 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            background: #121212;
-            color: #00E676;
-            font-family: -apple-system, sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-        }
-        h1 { font-size: 24px; margin-bottom: 10px; }
-        p { color: #888; font-size: 14px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Nexus VPN</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --bg-soft:#f8fafc;
+    --card-bg:#ffffff;
+    --text:#0f172a;
+    --text-dim:#64748b;
+    --text-dark:#334155;
+    --line:#e2e8f0;
+    --blue:#2563eb;
+    --blue-soft:#eff6ff;
+    --black:#0f172a;
+    --green:#10b981;
+    --green-soft:#ecfdf5;
+    --orange:#f59e0b;
+    --danger:#ef4444;
+    --radius:14px;
+    --shadow-card:0 2px 10px rgba(0,0,0,.03);
+    --shadow-fab:0 8px 24px rgba(15,23,42,.3);
+    --log-bg:#09090b;
+    --log-border:#27272a;
+    --log-text:#a1a1aa;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    overscroll-behavior:none;
+  }
+
+  .app{
+    position:fixed;inset:0;
+    display:flex;flex-direction:column;
+    background:var(--bg);
+  }
+
+  .top-bar{
+    padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--bg);
+    flex-shrink:0;
+    position:relative;
+    z-index:10;
+    border-bottom:1px solid var(--line);
+  }
+  .top-bar-left{display:flex;align-items:center;gap:12px}
+  .top-bar-right{display:flex;align-items:center;gap:16px}
+  
+  .icon-btn{
+    background:transparent;border:none;cursor:pointer;
+    color:#475569;display:grid;place-items:center;
+    transition:transform .15s, color .15s;
+  }
+  .icon-btn:active{transform:scale(.9);color:var(--black)}
+  .icon-btn svg{width:24px;height:24px}
+  
+  .app-title{
+    font-size:19px;font-weight:800;color:var(--text);
+    letter-spacing:-.5px;
+  }
+
+  .content{
+    flex:1;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:16px;
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 100px);
+  }
+  .list{display:flex;flex-direction:column;gap:12px}
+
+  .card{
+    background:var(--card-bg);
+    border-radius:var(--radius);
+    border:1px solid var(--line);
+    box-shadow:var(--shadow-card);
+    display:flex;
+    position:relative;
+    overflow:hidden;
+    animation:cardIn .3s ease both;
+  }
+  @keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  
+  .card::before {
+    content:'';
+    position:absolute;
+    left:0;top:0;bottom:0;
+    width:4px;
+    background:#94a3b8;
+  }
+  .card.selected::before {
+    background:var(--blue);
+  }
+  .card.selected {
+    border-color:#bfdbfe;
+    background:#f8fafc;
+  }
+
+  .card-content{
+    flex:1;
+    padding:14px 12px 14px 18px;
+    display:flex;flex-direction:column;justify-content:center;
+    min-width:0;
+  }
+
+  .card-remarks{
+    font-size:15px;font-weight:600;color:var(--text-dark);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    margin-bottom:4px;
+  }
+  .card-host{
+    font-size:13px;font-weight:400;color:var(--text-dim);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+
+  .card-actions{
+    padding:12px 16px 12px 8px;
+    display:flex;flex-direction:column;
+    align-items:flex-end;justify-content:space-between;
+    flex-shrink:0;
+  }
+  
+  .action-buttons{ display:flex;gap:14px;align-items:center; }
+  
+  .action-btn{
+    background:transparent;border:none;color:#94a3b8;
+    cursor:pointer;padding:4px;
+    transition:color .15s, transform .15s;
+  }
+  .action-btn:active{transform:scale(.85);color:var(--text-dark)}
+  .action-btn svg{width:20px;height:20px}
+
+  .card-type-label{
+    font-size:11px;font-weight:700;color:var(--blue);
+    margin-top:8px; letter-spacing:.3px;
+  }
+
+  .empty{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:60px 24px;gap:14px;
+    color:var(--text-dim);
+  }
+  .empty h3{font-size:16px;color:var(--text);font-weight:700}
+  .empty p{font-size:13px;line-height:1.5;max-width:260px}
+
+  .fab-wrapper {
+    position:fixed;
+    right:20px;
+    bottom:calc(env(safe-area-inset-bottom,0px) + 24px);
+    z-index:30;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+
+  .fab-status-text {
+    font-size:13px; font-weight:700;
+    color:var(--text-dark);
+    background:var(--bg);
+    padding:8px 14px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    box-shadow:0 4px 12px rgba(0,0,0,.05);
+    opacity:0; transform:translateX(10px);
+    transition:all .3s cubic-bezier(.22,1,.36,1);
+    pointer-events:none;
+  }
+  .fab-status-text.show { opacity:1; transform:translateX(0); }
+
+  .fab{
+    width:60px; height:60px;
+    border-radius:50%; border:none;cursor:pointer;
+    background:var(--black); color:#fff;
+    display:grid;place-items:center;
+    box-shadow:var(--shadow-fab);
+    transition:transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s, background .3s;
+  }
+  .fab:active{transform:scale(.92);box-shadow:0 4px 12px rgba(15,23,42,.3)}
+  .fab svg{width:28px;height:28px;margin-left:2px;transition:all .3s}
+  
+  .fab.connected {
+    background:var(--green);
+    box-shadow:0 8px 24px rgba(16,185,129,.4);
+  }
+  .fab.connected svg { margin-left:0; }
+  
+  .fab.connecting {
+    background:var(--orange);
+    box-shadow:0 8px 24px rgba(245,158,11,.4);
+    pointer-events:none;
+  }
+  .fab.connecting svg { display:none; }
+  
+  .spinner {
+    display:none; width:28px;height:28px;
+    border:3px solid rgba(255,255,255,.3);
+    border-top-color:#fff; border-radius:50%;
+    animation:spin 1s linear infinite;
+  }
+  .fab.connecting .spinner { display:block; }
+  @keyframes spin {to {transform:rotate(360deg);} }
+
+  .fab .icon-play { display:block; }
+  .fab .icon-stop { display:none; }
+  .fab.connected .icon-play { display:none; }
+  .fab.connected .icon-stop { display:block; }
+
+  .drawer-overlay {
+    position:fixed;inset:0;
+    background:rgba(15,23,42,.5);
+    backdrop-filter:blur(3px);
+    z-index:80;
+    opacity:0;visibility:hidden;
+    transition:opacity .3s, visibility .3s;
+  }
+  .drawer-overlay.open {opacity:1;visibility:visible;}
+
+  .drawer {
+    position:fixed;top:0;left:0;bottom:0;
+    width:85%;max-width:320px;
+    background:var(--bg);
+    z-index:81;
+    transform:translateX(-100%);
+    transition:transform .35s cubic-bezier(.22,1,.36,1);
+    display:flex;flex-direction:column;
+    box-shadow:10px 0 30px rgba(0,0,0,.1);
+    overflow-y:auto;
+  }
+  .drawer.open {transform:translateX(0);}
+
+  .drawer-header {
+    padding:calc(env(safe-area-inset-top, 0px) + 30px) 24px 20px;
+    display:flex; align-items:center; gap:14px;
+  }
+  
+  .drawer-logo {
+    width:46px;height:46px;
+    background:var(--blue);
+    border-radius:12px;
+    display:grid;place-items:center;
+    box-shadow:0 4px 12px rgba(37,99,235,.3);
+  }
+  .drawer-logo svg {width:24px;height:24px;fill:#fff;}
+  
+  .drawer-title-group {display:flex;flex-direction:column;}
+  .drawer-title {
+    font-size:16px;font-weight:800;color:var(--text);
+    letter-spacing:-.3px;
+  }
+  .drawer-version {
+    font-size:11px;font-weight:600;color:var(--text-dim);
+    margin-top:2px;
+  }
+
+  .drawer-menu {
+    display:flex;flex-direction:column;
+    padding:0 12px; gap:4px;
+  }
+  
+  .drawer-item {
+    display:flex;align-items:center;gap:14px;
+    padding:13px 16px;
+    border-radius:10px;
+    font-size:14.5px;font-weight:600;color:var(--text-dark);
+    cursor:pointer;border:none;background:transparent;
+    text-align:left;width:100%;
+    transition:background .15s;
+  }
+  .drawer-item:active {background:var(--bg-soft);}
+  .drawer-item svg {width:20px;height:20px;color:#64748b; stroke-width:2.2;}
+  
+  .drawer-divider {
+    height:1px;background:var(--line);
+    margin:12px 24px;
+  }
+
+  .type-overlay {
+    position:fixed;inset:0;
+    background:rgba(15,23,42,.2);
+    z-index:35;
+    opacity:0;visibility:hidden;
+    transition:opacity .2s, visibility .2s;
+  }
+  .type-overlay.open {opacity:1;visibility:visible;}
+
+  .type-menu {
+    position:fixed;
+    top:calc(env(safe-area-inset-top, 0px) + 70px);
+    right:20px;
+    width: 260px;
+    background:var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.15);
+    z-index:36;
+    transform-origin: top right;
+    transform: scale(.95);
+    opacity:0;visibility:hidden;
+    transition:transform .2s cubic-bezier(.22,1,.36,1), opacity .2s, visibility .2s;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .type-menu.open { transform: scale(1); opacity:1;visibility:visible; }
+  
+  .type-item {
+    padding: 14px 18px;
+    display:flex;align-items:center;gap:8px;
+    cursor:pointer; font-size:14.5px; font-weight:600;
+    color:var(--text-dark);
+    transition:background .15s;
+  }
+  .type-item:active { background:var(--bg-soft); }
+  .type-item:not(:last-child) { border-bottom:1px solid #f1f5f9; }
+
+  .badge-tag {
+    font-size:9px;font-weight:800;
+    padding:2px 5px;border-radius:4px;
+    letter-spacing:.5px; text-transform:uppercase;
+  }
+  .tag-xray { background:#dcfce7; color:#166534; }
+  .tag-native { background:#fef08a; color:#854d0e; }
+  .tag-new { background:#fef3c7; color:#b45309; }
+
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(255,255,255,.95);
+    backdrop-filter:blur(4px);
+    opacity:0;visibility:hidden;
+    transition:opacity .3s ease, visibility .3s;
+    z-index:40;
+  }
+  .overlay.open{opacity:1;visibility:visible}
+
+  .sheet{
+    position:fixed;inset:0;
+    background:var(--card-bg);
+    z-index:50;
+    transform:translateY(100%);
+    transition:transform .35s cubic-bezier(.22,1,.36,1);
+    display:flex;flex-direction:column;
+  }
+  .sheet.open{transform:translateY(0)}
+
+  .sheet-head{
+    padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .sheet-head .title{
+    font-size:19px;font-weight:700;color:var(--text);
+    flex:1;text-align:center;
+  }
+  .sheet-btn{
+    width:40px;height:40px;border-radius:50%;border:none;
+    background:transparent;color:var(--text-dim);
+    display:grid;place-items:center;cursor:pointer;
+    transition:background .15s, transform .12s;
+  }
+  .sheet-btn:active{background:var(--bg-soft);transform:scale(.9)}
+  .sheet-btn svg{width:24px;height:24px}
+  
+  .btn-help{
+    background:#94a3b8; color:#fff; width:28px; height:28px; border-radius:6px;
+    display:grid;place-items:center; font-size:14px; font-weight:bold; margin-right:12px;
+  }
+  .btn-save-check{ color:var(--blue); }
+
+  .sheet-body{
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:24px 20px 40px;
+    display:flex;flex-direction:column;gap:16px;
+    flex:1;
+  }
+
+  .field{ position:relative; display:flex; flex-direction:column; }
+  .field input, .field textarea, .field select{
+    width:100%; font-family:inherit;
+    font-size:15px;font-weight:500; color:var(--text);
+    background:transparent; border:1.5px solid #cbd5e1;
+    border-radius:10px; padding:16px 14px;
+    outline:none; transition:border-color .18s;
+    -webkit-appearance:none;
+  }
+  .field textarea { resize:none; min-height:80px; line-height:1.5; }
+  .field select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    background-size: 18px; padding-right: 40px;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus{
+    border-color:var(--blue); border-width:2px; padding:15px 13px;
+  }
+  .field label{
+    position:absolute; top:-8px; left:12px;
+    background:var(--card-bg); padding:0 4px;
+    font-size:12px; color:var(--text-dim);
+    font-weight:600; pointer-events:none;
+  }
+  .field input:focus ~ label, .field textarea:focus ~ label, .field select:focus ~ label { color:var(--blue); }
+
+  .row2{display:flex;gap:12px}
+  .row2 .field{flex:1}
+  .row2 .field.small{flex:0 0 100px}
+  .divider { height: 1px; background: var(--line); margin: 8px 20px; }
+
+  .log-panel{
+    position:fixed;top:0;left:0;bottom:0; width:100%;
+    background:var(--log-bg); color:var(--log-text);
+    z-index:60;
+    transform:translateX(-100%);
+    transition:transform .35s cubic-bezier(.22,1,.36,1);
+    display:flex;flex-direction:column;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  .log-panel.open{transform:translateX(0)}
+
+  .log-head{
+    padding:14px 16px;
+    border-bottom:1px solid var(--log-border);
+    display:flex;align-items:center;justify-content:space-between;
+    flex-shrink:0; background:var(--log-bg);
+  }
+  .log-head .title{display:flex;align-items:center;gap:10px}
+  
+  .log-head h2{
+    font-size:14px;font-weight:700;letter-spacing:.5px;
+    color:#e4e4e7;font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  
+  .log-status {
+    display:flex; align-items:center; gap:6px;
+    font-size:11px; font-weight:700; text-transform:uppercase;
+    padding:4px 8px; border-radius:6px; background:#18181b;
+    border:1px solid var(--log-border);
+  }
+  .log-status .dot { width:6px; height:6px; border-radius:50%; background:#71717a; }
+  .log-status.active .dot { background:var(--green); box-shadow:0 0 6px var(--green); }
+
+  .log-actions{display:flex;gap:6px}
+  .log-btn{
+    height:32px;padding:0 10px;border-radius:6px;border:1px solid var(--log-border);
+    background:#18181b;color:#a1a1aa;
+    font-size:11.5px;font-weight:600;
+    display:flex;align-items:center;gap:6px;cursor:pointer;
+    transition:background .15s,color .15s,transform .12s;
+  }
+  .log-btn:active{background:#27272a;color:#fff;transform:scale(.95)}
+  .log-btn svg{width:14px;height:14px}
+
+  .log-body{
+    flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:12px 14px;
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    font-size:12px;line-height:1.65;
+  }
+  .log-body::-webkit-scrollbar{width:4px}
+  .log-body::-webkit-scrollbar-thumb{background:#3f3f46;border-radius:2px}
+  
+  .log-line{
+    display:flex; gap:10px;
+    padding:3px 0;
+    animation:logIn .15s ease both;
+  }
+  .log-line:last-child{border-bottom:none}
+  @keyframes logIn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:translateX(0)}}
+  
+  .log-line .ts{color:#52525b; font-size:11px; flex-shrink:0; width:60px;}
+  .log-line .tag{
+    font-weight:800; font-size:10px; flex-shrink:0;
+    width:44px; text-align:center; padding-top:1px;
+  }
+  .log-line .msg{color:#d4d4d8; word-break:break-word; flex:1;}
+  
+  .log-line.info .tag{color:#60a5fa;}
+  .log-line.ok .tag{color:#34d399;}
+  .log-line.warn .tag{color:#fbbf24;}
+  .log-line.err .tag{color:#f87171;}
+  .log-line.debug .tag{color:#a78bfa;}
+
+  .log-line.err .msg{color:#fca5a5;}
+  .log-line.ok .msg{color:#a7f3d0;}
+
+  .log-empty{color:#3f3f46;font-style:italic;text-align:center;padding-top:40px;font-size:13px;}
+
+  .toast{
+    position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
+    transform:translate(-50%,20px);
+    background:var(--black);color:#fff;
+    font-size:13px;font-weight:600;
+    padding:12px 20px;border-radius:12px;
+    box-shadow:var(--shadow-fab);
+    opacity:0;visibility:hidden;
+    transition:opacity .25s,transform .25s,visibility .25s;
+    z-index:100;max-width:85vw;text-align:center;
+  }
+  .toast.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
+</style>
 </head>
 <body>
-    <h1>SISTEM CERDAS AKTIF!</h1>
-    <p>Folder bahan berhasil dimuat tanpa Google.</p>
+
+<div class="app">
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <button class="icon-btn" id="btnOpenLog" aria-label="Buka Log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 17 10 11 4 5"></polyline>
+          <line x1="12" y1="19" x2="20" y2="19"></line>
+        </svg>
+      </button>
+      <div class="app-title">Nexus VPN</div>
+    </div>
+    
+    <div class="top-bar-right">
+      <button class="icon-btn" id="btnAddTop" aria-label="Tambah">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="12" y1="18" x2="12" y2="12"></line>
+          <line x1="9" y1="15" x2="15" y2="15"></line>
+        </svg>
+      </button>
+      <button class="icon-btn" id="btnOpenDrawer" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <circle cx="12" cy="12" r="1"></circle>
+          <circle cx="12" cy="5" r="1"></circle>
+          <circle cx="12" cy="19" r="1"></circle>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="content">
+    <div class="list" id="serverList"></div>
+  </main>
+
+  <div class="fab-wrapper">
+    <div class="fab-status-text" id="fabStatusText">Waiting...</div>
+    <button class="fab" id="fabConnect">
+      <div class="spinner"></div>
+      <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg>
+      <svg class="icon-stop" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="6" width="12" height="12"></rect>
+      </svg>
+    </button>
+  </div>
+
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div class="drawer-logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L3 7v10l9 5 9-5V7l-9-5zm0 2.5l7 3.9v7.2l-7 3.9-7-3.9V8.4l7-3.9zm-3 4.5v6h2v-3l4 3h2V8h-2v3l-4-3h-2z"/>
+      </svg>
+    </div>
+    <div class="drawer-title-group">
+      <div class="drawer-title">Nexus VPN</div>
+      <div class="drawer-version">Version 1.0.0 (Stable)</div>
+    </div>
+  </div>
+
+  <div class="drawer-menu">
+    <button class="drawer-item" id="drawerShowLog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+      Connection Logs
+    </button>
+    <button class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+      Network Diagnostics
+    </button>
+    <button class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      Ping Checker
+    </button>
+  </div>
+  
+  <div class="drawer-divider"></div>
+  
+  <div class="drawer-menu">
+    <button class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+      DNS Customizer
+    </button>
+    <button class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+      Split Tunneling
+    </button>
+  </div>
+
+  <div class="drawer-divider"></div>
+
+  <div class="drawer-menu">
+    <button class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      App Settings
+    </button>
+    <button class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+      About Nexus
+    </button>
+  </div>
+</div>
+
+<div class="type-overlay" id="typeOverlay"></div>
+
+<div class="type-menu" id="typeMenu">
+  <div class="type-item" data-type="SSH">SSH <span class="badge-tag tag-native">NATIVE</span></div>
+  <div class="type-item" data-type="DNSTT + SSH">DNSTT + SSH <span class="badge-tag tag-native">NATIVE</span></div>
+  <div class="type-item" data-type="VMess">VMess <span class="badge-tag tag-xray">XRAY</span></div>
+  <div class="type-item" data-type="VLESS">VLESS <span class="badge-tag tag-xray">XRAY</span></div>
+  <div class="type-item" data-type="Trojan">Trojan <span class="badge-tag tag-xray">XRAY</span></div>
+  <div class="type-item" data-type="WireGuard">WireGuard <span class="badge-tag tag-xray">XRAY</span></div>
+  <div class="type-item" data-type="Hysteria2">Hysteria2 <span class="badge-tag tag-new">NEW</span></div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="sheet" id="sheet">
+  <div class="sheet-head">
+    <button class="sheet-btn" id="sheetClose" aria-label="Tutup">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    <div class="title" id="sheetTitle">Add SSH</div>
+    <div style="display:flex; align-items:center;">
+      <div class="btn-help">?</div>
+      <button class="sheet-btn btn-save-check" id="btnSaveHeader" aria-label="Simpan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </button>
+    </div>
+  </div>
+  
+  <div class="sheet-body">
+    <input type="hidden" id="fId">
+    <input type="hidden" id="fType">
+    
+    <div class="field">
+      <input type="text" id="fRemark" placeholder=" " autocomplete="off">
+      <label for="fRemark">Remarks</label>
+    </div>
+    
+    <div class="row2">
+      <div class="field">
+        <input type="text" id="fHost" placeholder=" " autocomplete="off" autocapitalize="off">
+        <label for="fHost">Address</label>
+      </div>
+      <div class="field small">
+        <input type="number" id="fPort" placeholder=" " inputmode="numeric">
+        <label for="fPort">Port</label>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <input type="text" id="fUser" placeholder=" " autocomplete="off" autocapitalize="off">
+      <label for="fUser">Username</label>
+    </div>
+    
+    <div class="field">
+      <input type="password" id="fPass" placeholder=" " autocomplete="off">
+      <label for="fPass">Password</label>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <textarea id="fPayload" placeholder=" " spellcheck="false"></textarea>
+      <label for="fPayload">Payload (HTTP Request Header)</label>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <select id="fRespStatus">
+        <option value="200 Connection established">200 Connection established</option>
+        <option value="101 Switching Protocols">101 Switching Protocols</option>
+        <option value="200 OK">200 OK</option>
+      </select>
+      <label for="fRespStatus">Response status</label>
+    </div>
+
+    <div class="field">
+      <select id="fRespPos">
+        <option value="pre_request">pre_request</option>
+        <option value="post_request">post_request</option>
+      </select>
+      <label for="fRespPos">Response position</label>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <select id="fProxyType">
+        <option value="none">none</option>
+        <option value="http">http</option>
+        <option value="socks5">socks5</option>
+      </select>
+      <label for="fProxyType">Proxy type</label>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <select id="fTlsType">
+        <option value="none">none</option>
+        <option value="tls">tls</option>
+        <option value="ssl">ssl</option>
+      </select>
+      <label for="fTlsType">TLS type</label>
+    </div>
+  </div>
+</div>
+
+<div class="log-panel" id="logPanel">
+  <div class="log-head">
+    <div class="title">
+      <h2>Nexus Log</h2>
+      <div class="log-status" id="logStatusIndicator">
+        <div class="dot"></div> Offline
+      </div>
+    </div>
+    <div class="log-actions">
+      <button class="log-btn" id="btnCopyLog" aria-label="Salin Log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+        </svg>
+        Copy
+      </button>
+      <button class="log-btn" id="btnClearLog" aria-label="Bersihkan log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
+        </svg>
+      </button>
+      <button class="log-btn" id="btnCloseLog" aria-label="Tutup log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="log-body" id="logBody">
+    <div class="log-empty" id="logEmpty">// Menunggu aktivitas sistem...</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var servers = [];
+  var selectedId = null;
+  var vpnState = 'disconnected'; 
+  var editingId = null;
+  var rawLogText = ""; 
+  var currentAddType = "SSH"; 
+
+  var $ = function(s){ return document.querySelector(s); };
+  var listEl       = $("#serverList");
+  var drawerOverlay= $("#drawerOverlay");
+  var drawer       = $("#drawer");
+  var btnOpenDrawer= $("#btnOpenDrawer");
+  var drawerShowLog= $("#drawerShowLog");
+  var typeOverlay  = $("#typeOverlay");
+  var typeMenu     = $("#typeMenu");
+  var overlay      = $("#overlay");
+  var sheet        = $("#sheet");
+  var sheetTitle   = $("#sheetTitle");
+  var btnAddTop    = $("#btnAddTop");
+  var btnCloseSheet= $("#sheetClose");
+  var btnSaveHeader= $("#btnSaveHeader");
+  var fab          = $("#fabConnect");
+  var fabStatusText= $("#fabStatusText");
+  var logPanel     = $("#logPanel");
+  var logBody      = $("#logBody");
+  var logEmpty     = $("#logEmpty");
+  var logStatusInd = $("#logStatusIndicator");
+  var toastEl      = $("#toast");
+  var btnOpenLog   = $("#btnOpenLog");
+  var btnCloseLog  = $("#btnCloseLog");
+  var btnClearLog  = $("#btnClearLog");
+  var btnCopyLog   = $("#btnCopyLog");
+
+  var f = {
+    id:         $("#fId"),
+    type:       $("#fType"),
+    remark:     $("#fRemark"),
+    host:       $("#fHost"),
+    port:       $("#fPort"),
+    user:       $("#fUser"),
+    pass:       $("#fPass"),
+    payload:    $("#fPayload"),
+    respStatus: $("#fRespStatus"),
+    respPos:    $("#fRespPos"),
+    proxyType:  $("#fProxyType"),
+    tlsType:    $("#fTlsType")
+  };
+
+  function uid(){
+    return "cfg_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7);
+  }
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ toastEl.classList.remove("show"); }, 2200);
+  }
+
+  function updateFabUI(newState, customText) {
+    vpnState = newState;
+    fab.classList.remove("connected", "connecting");
+    fabStatusText.classList.remove("show");
+    logStatusInd.classList.remove("active");
+    logStatusInd.innerHTML = '<div class="dot"></div> Offline';
+
+    if (vpnState === 'disconnected') {
+      fabStatusText.textContent = "";
+    } 
+    else if (vpnState === 'connecting') {
+      fab.classList.add("connecting");
+      fabStatusText.textContent = customText || "Connecting...";
+      fabStatusText.classList.add("show");
+      logStatusInd.innerHTML = '<div class="dot"></div> Connecting';
+    } 
+    else if (vpnState === 'reconnecting') {
+      fab.classList.add("connecting");
+      fabStatusText.textContent = customText || "Reconnecting...";
+      fabStatusText.classList.add("show");
+      logStatusInd.innerHTML = '<div class="dot"></div> Reconnecting';
+    } 
+    else if (vpnState === 'connected') {
+      fab.classList.add("connected");
+      fabStatusText.textContent = customText || "Connected";
+      fabStatusText.classList.add("show");
+      logStatusInd.classList.add("active");
+      logStatusInd.innerHTML = '<div class="dot"></div> Online';
+    }
+  }
+
+  window.setVpnState = function(state, text) {
+    updateFabUI(state, text);
+  };
+
+  function render(){
+    if (!servers.length){
+      listEl.innerHTML =
+        '<div class="empty">' +
+          '<h3>Belum ada config</h3>' +
+          '<p>Tap tombol + di kanan atas untuk menambahkan server pertama kamu.</p>' +
+        '</div>';
+      return;
+    }
+
+    var html = "";
+    servers.forEach(function(s, i){
+      var displayType = s.type || "SSH";
+      var finalLabel = displayType;
+      if (s.proxyType && s.proxyType !== "none" && displayType !== s.proxyType.toUpperCase()) {
+        finalLabel += " + " + s.proxyType.toUpperCase();
+      }
+
+      html +=
+        '<div class="card' + (s.id === selectedId ? " selected" : "") + '" data-id="' + esc(s.id) + '" style="animation-delay:' + Math.min(i*40,240) + 'ms">' +
+          '<div class="card-content">' +
+            '<div class="card-remarks">' + esc(s.remark || "Tanpa Nama") + '</div>' +
+            '<div class="card-host">' + esc(s.host || "-") + ':' + esc(s.port || "-") + '</div>' +
+          '</div>' +
+          '<div class="card-actions">' +
+            '<div class="action-buttons">' +
+              '<button class="action-btn" data-share="' + esc(s.id) + '" aria-label="Share">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle>' +
+                  '<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>' +
+                '</svg>' +
+              '</button>' +
+              '<button class="action-btn" data-edit="' + esc(s.id) + '" aria-label="Edit">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"></path>' +
+                '</svg>' +
+              '</button>' +
+              '<button class="action-btn" data-del="' + esc(s.id) + '" aria-label="Hapus">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>' +
+                '</svg>' +
+              '</button>' +
+            '</div>' +
+            '<div class="card-type-label">(' + esc(finalLabel) + ')</div>' +
+          '</div>' +
+        '</div>';
+    });
+    listEl.innerHTML = html;
+
+    if (selectedId && !servers.some(function(x){return x.id===selectedId;})){
+      selectedId = null;
+    }
+  }
+
+  function openDrawer() {
+    drawer.classList.add("open");
+    drawerOverlay.classList.add("open");
+  }
+  function closeDrawer() {
+    drawer.classList.remove("open");
+    drawerOverlay.classList.remove("open");
+  }
+
+  btnOpenDrawer.addEventListener("click", openDrawer);
+  drawerOverlay.addEventListener("click", closeDrawer);
+  
+  drawerShowLog.addEventListener("click", function() {
+    closeDrawer();
+    setTimeout(openLog, 300);
+  });
+
+  function selectServer(id){
+    selectedId = (selectedId === id) ? null : id;
+    render();
+  }
+
+  function openSheet(id){
+    editingId = id || null;
+    if (editingId){
+      var s = servers.find(function(x){ return x.id === editingId; });
+      if (!s) return;
+      sheetTitle.textContent = "Edit " + (s.type || "SSH");
+      f.id.value         = s.id;
+      f.type.value       = s.type || "SSH";
+      f.remark.value     = s.remark || "";
+      f.host.value       = s.host || "";
+      f.port.value       = s.port || "";
+      f.user.value       = s.user || "";
+      f.pass.value       = s.pass || "";
+      f.payload.value    = s.payload || "";
+      f.respStatus.value = s.respStatus || "200 Connection established";
+      f.respPos.value    = s.respPos || "pre_request";
+      f.proxyType.value  = s.proxyType || "none";
+      f.tlsType.value    = s.tlsType || "none";
+    } else {
+      sheetTitle.textContent = "Add " + currentAddType;
+      f.id.value = "";
+      f.type.value = currentAddType;
+      f.remark.value = f.host.value = f.port.value =
+      f.user.value = f.pass.value = f.payload.value = "";
+      f.respStatus.value = "200 Connection established";
+      f.respPos.value    = "pre_request";
+      f.proxyType.value  = "none";
+      f.tlsType.value    = "none";
+    }
+    overlay.classList.add("open");
+    sheet.classList.add("open");
+  }
+  function closeSheet(){
+    overlay.classList.remove("open");
+    sheet.classList.remove("open");
+    setTimeout(function(){ editingId = null; }, 380);
+  }
+
+  function openTypeMenu() {
+    typeOverlay.classList.add("open");
+    typeMenu.classList.add("open");
+  }
+  
+  function closeTypeMenu() {
+    typeOverlay.classList.remove("open");
+    typeMenu.classList.remove("open");
+  }
+
+  btnAddTop.addEventListener("click", openTypeMenu);
+  typeOverlay.addEventListener("click", closeTypeMenu);
+
+  typeMenu.querySelectorAll(".type-item").forEach(function(item) {
+    item.addEventListener("click", function() {
+      currentAddType = this.getAttribute("data-type");
+      closeTypeMenu();
+      setTimeout(function(){ openSheet(null); }, 150);
+    });
+  });
+
+  btnCloseSheet.addEventListener("click", closeSheet);
+  overlay.addEventListener("click", closeSheet);
+
+  function saveConfigAction(){
+    var remark  = f.remark.value.trim();
+    var host    = f.host.value.trim();
+    var port    = f.port.value.trim();
+    var user    = f.user.value.trim();
+    var pass    = f.pass.value;
+    var payload = f.payload.value;
+    var respStatus = f.respStatus.value;
+    var respPos    = f.respPos.value;
+    var proxyType  = f.proxyType.value;
+    var tlsType    = f.tlsType.value;
+    var type       = f.type.value;
+
+    if (!remark){ toast("Remarks wajib diisi"); f.remark.focus(); return; }
+    if (!host){ toast("Address wajib diisi"); f.host.focus(); return; }
+    if (!port){ toast("Port wajib diisi"); f.port.focus(); return; }
+
+    var id = f.id.value || uid();
+    var cfg = {
+      id: id, type: type, remark: remark, host: host, port: port,
+      user: user, pass: pass, payload: payload, respStatus: respStatus,
+      respPos: respPos, proxyType: proxyType, tlsType: tlsType
+    };
+
+    var idx = servers.findIndex(function(x){ return x.id === id; });
+    if (idx >= 0) servers[idx] = cfg;
+    else servers.push(cfg);
+
+    selectedId = id;
+    render();
+    closeSheet();
+    toast("Config berhasil disimpan");
+
+    try {
+      if (window.AndroidInterface && typeof window.AndroidInterface.saveConfig === "function"){
+        window.AndroidInterface.saveConfig(JSON.stringify(cfg));
+      } else { console.log("[bridge] saveConfig:", cfg); }
+    } catch(e){ console.error(e); }
+  }
+
+  btnSaveHeader.addEventListener("click", saveConfigAction);
+
+  listEl.addEventListener("click", function(ev){
+    var delBtn = ev.target.closest("[data-del]");
+    if (delBtn){ ev.stopPropagation(); deleteServer(delBtn.getAttribute("data-del")); return; }
+    
+    var editBtn = ev.target.closest("[data-edit]");
+    if (editBtn){ ev.stopPropagation(); openSheet(editBtn.getAttribute("data-edit")); return; }
+    
+    var shareBtn = ev.target.closest("[data-share]");
+    if (shareBtn){ ev.stopPropagation(); toast("Fitur Share segera hadir!"); return; }
+    
+    var card = ev.target.closest(".card");
+    if (card){ selectServer(card.getAttribute("data-id")); }
+  });
+
+  function deleteServer(id){
+    var s = servers.find(function(x){ return x.id === id; });
+    if (!s) return;
+    if (!confirm('Hapus config "' + (s.remark || "Tanpa Nama") + '"?')) return;
+
+    servers = servers.filter(function(x){ return x.id !== id; });
+    if (selectedId === id) selectedId = null;
+    render();
+    toast("Config dihapus");
+
+    try {
+      if (window.AndroidInterface && typeof window.AndroidInterface.deleteConfig === "function"){
+        window.AndroidInterface.deleteConfig(id);
+      } else { console.log("[bridge] deleteConfig:", id); }
+    } catch(e){ console.error(e); }
+  }
+
+  fab.addEventListener("click", function(){
+    if (vpnState === 'disconnected') {
+      var target = selectedId || (servers[0] && servers[0].id);
+      if (!target){ toast("Pilih / tambah config dulu"); return; }
+      if (!selectedId) selectedId = target;
+      connectTo(target);
+    } 
+    else if (vpnState === 'connected') {
+      disconnectVpn();
+    }
+  });
+
+  function connectTo(id){
+    updateFabUI('connecting', 'Waiting...');
+    var target = servers.find(function(x){return x.id === id;});
+    var label = target ? target.remark : id;
+
+    window.updateLog("[INIT] Memulai inisialisasi koneksi ke " + label + "...", "info");
+    
+    try {
+      if (window.AndroidInterface && typeof window.AndroidInterface.startVpn === "function"){
+        window.AndroidInterface.startVpn(id);
+      } else {
+        setTimeout(function(){ 
+          if (vpnState === 'connecting') {
+             updateFabUI('connected', 'Connected');
+             window.updateLog("[OK] Tunnel established. Autentikasi berhasil.", "ok");
+             window.updateLog("[SYS] IP publik saat ini: 104.28.12.xx", "info");
+          }
+        }, 2500);
+      }
+    } catch(e){ 
+      updateFabUI('disconnected');
+      window.updateLog("[ERR] Gagal memanggil native interface: " + e.message, "err");
+    }
+  }
+
+  function disconnectVpn(){
+    updateFabUI('connecting', 'Disconnecting...');
+    window.updateLog("[WARN] Menghentikan proses VPN...", "warn");
+    
+    try {
+      if (window.AndroidInterface && typeof window.AndroidInterface.stopVpn === "function"){
+        window.AndroidInterface.stopVpn();
+      } else {
+        setTimeout(function(){ 
+          if (vpnState === 'connecting') {
+            updateFabUI('disconnected');
+            window.updateLog("[INFO] Koneksi terputus.", "info");
+          }
+        }, 800);
+      }
+    } catch(e){
+      updateFabUI('disconnected');
+      window.updateLog("[ERR] Gagal memutus koneksi: " + e.message, "err");
+    }
+  }
+
+  function openLog(){ logPanel.classList.add("open"); }
+  function closeLog(){ logPanel.classList.remove("open"); }
+
+  btnOpenLog.addEventListener("click", openLog);
+  btnCloseLog.addEventListener("click", closeLog);
+  
+  btnClearLog.addEventListener("click", function(){
+    logBody.innerHTML = "";
+    logBody.appendChild(logEmpty);
+    logEmpty.style.display = "";
+    rawLogText = "";
+    toast("Log dibersihkan");
+  });
+
+  btnCopyLog.addEventListener("click", function(){
+    if (!rawLogText) { toast("Log masih kosong"); return; }
+    navigator.clipboard.writeText(rawLogText).then(function(){
+      toast("Semua log berhasil disalin!");
+    }).catch(function(err){
+      var textArea = document.createElement("textarea");
+      textArea.value = rawLogText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try { document.execCommand('copy'); toast("Semua log berhasil disalin!"); } 
+      catch (err) { toast("Gagal menyalin log"); }
+      document.body.removeChild(textArea);
+    });
+  });
+
+  window.updateLog = function(text, type) {
+    if (!text) return;
+    if (logEmpty.parentNode) logEmpty.style.display = "none";
+
+    type = (type || "").toLowerCase();
+    if (!type) {
+      var t = String(text).toLowerCase();
+      if (t.indexOf("error") !== -1 || t.indexOf("fail") !== -1 || t.indexOf("[err]") !== -1) type = "err";
+      else if (t.indexOf("warn") !== -1) type = "warn";
+      else if (t.indexOf("ok") !== -1 || t.indexOf("success") !== -1) type = "ok";
+      else if (t.indexOf("debug") !== -1) type = "debug";
+      else type = "info";
+    }
+
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2,"0");
+    var mm = String(now.getMinutes()).padStart(2,"0");
+    var ss = String(now.getSeconds()).padStart(2,"0");
+    var ts = hh + ":" + mm + ":" + ss;
+    var tagLabel = type.toUpperCase();
+
+    var line = document.createElement("div");
+    line.className = "log-line " + type;
+    line.innerHTML = 
+      '<span class="ts">' + ts + '</span>' + 
+      '<span class="tag">[' + tagLabel + ']</span>' + 
+      '<span class="msg">' + esc(text) + '</span>';
+    
+    logBody.appendChild(line);
+    rawLogText += "[" + ts + "] [" + tagLabel + "] " + text + "\n";
+
+    if (type === "err" && vpnState !== 'disconnected') {
+      updateFabUI('reconnecting', 'Reconnecting...');
+    }
+
+    var isNearBottom = logBody.scrollHeight - logBody.scrollTop - logBody.clientHeight < 60;
+    if (isNearBottom) {
+      logBody.scrollTop = logBody.scrollHeight;
+    }
+  };
+
+  window.appendLog = window.updateLog;
+
+  window.loadConfigs = function(json){
+    try {
+      var arr = (typeof json === "string") ? JSON.parse(json) : json;
+      if (Array.isArray(arr)){
+        servers = arr.map(function(s){
+          return {
+            id: s.id || uid(), type: s.type || "SSH",
+            remark: s.remark || s.remarks || "", host: s.host || s.address || "",
+            port: String(s.port || ""), user: s.user || s.username || "",
+            pass: s.pass || s.password || "", payload: s.payload || "",
+            respStatus: s.respStatus || s.resp_status || "200 Connection established",
+            respPos: s.respPos || s.resp_position || "pre_request",
+            proxyType: s.proxyType || s.proxy_type || "none",
+            tlsType: s.tlsType || s.tls_type || "none"
+          };
+        });
+        render();
+      }
+    } catch(e){ console.error("loadConfigs error:", e); }
+  };
+
+  render();
+  window.updateLog("Nexus System initialized. Ready for connection.", "info");
+
+  if (window.AndroidInterface && typeof window.AndroidInterface.getConfigs === "function") {
+      window.AndroidInterface.getConfigs();
+  }
+
+})();
+</script>
 </body>
 </html>
